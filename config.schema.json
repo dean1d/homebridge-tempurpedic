@@ -1,0 +1,152 @@
+{
+  "pluginAlias": "TempurPedic",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Control your Tempur-Pedic Smart Base(s) from HomeKit. Each base will appear as a single device with its enabled switches.",
+  "footerDisplay": "",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "default": "TempurPedic"
+      },
+      "bases": {
+        "title": "Bed Bases",
+        "buttonText": "Add Bed Base",
+        "type": "array",
+        "required": true,
+        "orderable": false,
+        "items": {
+          "title": "Bed Base",
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Bed Base Name",
+              "description": "The name that will appear in HomeKit (e.g. Bedroom Base).",
+              "type": "string",
+              "required": true,
+              "placeholder": "Bedroom Base"
+            },
+            "ip": {
+              "title": "IP Address",
+              "description": "The local IP address of the Tempur-Pedic Smart Base on your network.",
+              "type": "string",
+              "required": true,
+              "format": "ipv4",
+              "placeholder": "192.168.1.100"
+            },
+            "delay": {
+              "title": "Delay (ms)",
+              "description": "How long in milliseconds before each switch resets back to off after being triggered.",
+              "type": "integer",
+              "required": false,
+              "default": 1000,
+              "minimum": 100,
+              "maximum": 10000,
+              "placeholder": "1000"
+            },
+            "enableVibrate1": {
+              "title": "Enable Vibrate 1",
+              "type": "boolean",
+              "default": true
+            },
+            "enableVibrate2": {
+              "title": "Enable Vibrate 2",
+              "type": "boolean",
+              "default": true
+            },
+            "enableVibrate3": {
+              "title": "Enable Vibrate 3",
+              "type": "boolean",
+              "default": true
+            },
+            "enableVibrate4": {
+              "title": "Enable Vibrate 4",
+              "type": "boolean",
+              "default": true
+            },
+            "enableVibrateStop": {
+              "title": "Enable Vibrate Stop",
+              "type": "boolean",
+              "default": true
+            },
+            "enablePosition1": {
+              "title": "Enable Position 1",
+              "type": "boolean",
+              "default": true
+            },
+            "enablePosition2": {
+              "title": "Enable Position 2",
+              "type": "boolean",
+              "default": true
+            },
+            "enablePosition3": {
+              "title": "Enable Position 3",
+              "type": "boolean",
+              "default": true
+            },
+            "enablePosition4": {
+              "title": "Enable Position 4",
+              "type": "boolean",
+              "default": true
+            },
+            "enableFlat": {
+              "title": "Enable Flat",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      }
+    }
+  },
+  "form": [
+    {
+      "key": "bases",
+      "type": "array",
+      "orderable": false,
+      "items": [
+        {
+          "key": "bases[].name"
+        },
+        {
+          "key": "bases[].ip"
+        },
+        {
+          "key": "bases[].delay"
+        },
+        {
+          "key": "bases[].enableVibrate1"
+        },
+        {
+          "key": "bases[].enableVibrate2"
+        },
+        {
+          "key": "bases[].enableVibrate3"
+        },
+        {
+          "key": "bases[].enableVibrate4"
+        },
+        {
+          "key": "bases[].enableVibrateStop"
+        },
+        {
+          "key": "bases[].enablePosition1"
+        },
+        {
+          "key": "bases[].enablePosition2"
+        },
+        {
+          "key": "bases[].enablePosition3"
+        },
+        {
+          "key": "bases[].enablePosition4"
+        },
+        {
+          "key": "bases[].enableFlat"
+        }
+      ]
+    }
+  ]
+}
