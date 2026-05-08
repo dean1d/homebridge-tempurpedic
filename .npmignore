@@ -2,3 +2,5 @@ install.sh
 CONFIG_EXAMPLE.json
 *.zip
 src/
+.git/
+.gitignore
