@@ -46,28 +46,59 @@
               "maximum": 10000,
               "placeholder": "1000"
             },
+            "vibrationNaming": {
+              "title": "Vibration Button Naming",
+              "description": "Choose how vibration switches are labelled. Affects Vibrate 1-4 and the Stop switch. \"Both\" creates switches for both spellings.",
+              "type": "string",
+              "default": "vibrate",
+              "oneOf": [
+                {
+                  "title": "Vibrate (e.g. Vibrate 1)",
+                  "enum": [
+                    "vibrate"
+                  ]
+                },
+                {
+                  "title": "Vibration (e.g. Vibration 1)",
+                  "enum": [
+                    "vibration"
+                  ]
+                },
+                {
+                  "title": "Both",
+                  "enum": [
+                    "both"
+                  ]
+                }
+              ]
+            },
             "enableVibrate1": {
-              "title": "Enable Vibrate 1",
+              "title": "Vibrate 1",
+              "description": "Include switch 1 in HomeKit.",
               "type": "boolean",
               "default": true
             },
             "enableVibrate2": {
-              "title": "Enable Vibrate 2",
+              "title": "Vibrate 2",
+              "description": "Include switch 2 in HomeKit.",
               "type": "boolean",
               "default": true
             },
             "enableVibrate3": {
-              "title": "Enable Vibrate 3",
+              "title": "Vibrate 3",
+              "description": "Include switch 3 in HomeKit.",
               "type": "boolean",
               "default": true
             },
             "enableVibrate4": {
-              "title": "Enable Vibrate 4",
+              "title": "Vibrate 4",
+              "description": "Include switch 4 in HomeKit.",
               "type": "boolean",
               "default": true
             },
             "enableVibrateStop": {
-              "title": "Enable Vibrate Stop",
+              "title": "Stop Vibration / Stop Vibrate",
+              "description": "Include the stop vibration switch in HomeKit.",
               "type": "boolean",
               "default": true
             },
@@ -115,6 +146,15 @@
         },
         {
           "key": "bases[].delay"
+        },
+        {
+          "key": "bases[].vibrationNaming",
+          "type": "select",
+          "titleMap": {
+            "vibrate": "Vibrate (e.g. Vibrate 1)",
+            "vibration": "Vibration (e.g. Vibration 1)",
+            "both": "Both"
+          }
         },
         {
           "key": "bases[].enableVibrate1"

@@ -1,39 +1,70 @@
 'use strict';
 
 const dgram = require('dgram');
+const { version: PLUGIN_VERSION } = require('./package.json');
 
 const PLUGIN_NAME   = 'homebridge-tempurpedic';
 const PLATFORM_NAME = 'TempurPedic';
 const UDP_PORT      = 50007;
 
-// All commands are 9-byte binary payloads sent via UDP to port 50007.
-// Hex strings sourced from community reverse-engineering of the Tempur-Pedic
-// Ergo Premier Wi-Fi module.
 const COMMANDS = {
-  vibrate1:    Buffer.from('3305320394 8D 00 78 61'.replace(/\s/g, ''), 'hex'),
-  vibrate2:    Buffer.from('3305320394 8D 01 78 60'.replace(/\s/g, ''), 'hex'),
-  vibrate3:    Buffer.from('3305320394 8D 02 78 63'.replace(/\s/g, ''), 'hex'),
-  vibrate4:    Buffer.from('3305320394 8D 03 78 62'.replace(/\s/g, ''), 'hex'),
-  vibrateStop: Buffer.from('3305320A94 86 00 00 12'.replace(/\s/g, ''), 'hex'),
-  position1:   Buffer.from('3305320394 5C 00 00 C8'.replace(/\s/g, ''), 'hex'),
-  position2:   Buffer.from('3305320394 5C 01 00 C9'.replace(/\s/g, ''), 'hex'),
-  position3:   Buffer.from('3305320394 5C 02 00 CA'.replace(/\s/g, ''), 'hex'),
-  position4:   Buffer.from('3305320394 5C 03 00 CB'.replace(/\s/g, ''), 'hex'),
-  flat:        Buffer.from('3305320A94 5C 04 00 CC'.replace(/\s/g, ''), 'hex'),
+  vibrate1:    Buffer.from('3305320394' + '8D007861', 'hex'),
+  vibrate2:    Buffer.from('3305320394' + '8D017860', 'hex'),
+  vibrate3:    Buffer.from('3305320394' + '8D027863', 'hex'),
+  vibrate4:    Buffer.from('3305320394' + '8D037862', 'hex'),
+  vibrateStop: Buffer.from('3305320A94' + '86000012', 'hex'),
+  position1:   Buffer.from('3305320394' + '5C0000C8', 'hex'),
+  position2:   Buffer.from('3305320394' + '5C0100C9', 'hex'),
+  position3:   Buffer.from('3305320394' + '5C0200CA', 'hex'),
+  position4:   Buffer.from('3305320394' + '5C0300CB', 'hex'),
+  flat:        Buffer.from('3305320A94' + '5C0400CC', 'hex'),
 };
 
-const BUTTONS = [
-  { key: 'vibrate1',    label: 'Vibrate 1'    },
-  { key: 'vibrate2',    label: 'Vibrate 2'    },
-  { key: 'vibrate3',    label: 'Vibrate 3'    },
-  { key: 'vibrate4',    label: 'Vibrate 4'    },
-  { key: 'vibrateStop', label: 'Vibrate Stop' },
-  { key: 'position1',   label: 'Position 1'   },
-  { key: 'position2',   label: 'Position 2'   },
-  { key: 'position3',   label: 'Position 3'   },
-  { key: 'position4',   label: 'Position 4'   },
-  { key: 'flat',        label: 'Flat'         },
-];
+// vibrationNaming controls the label shown in HomeKit.
+// 'vibrate'   → Vibrate 1, Vibrate 2, Vibrate 3, Vibrate 4
+// 'vibration' → Vibration 1, Vibration 2, Vibration 3, Vibration 4
+// 'both'      → Vibrate 1, Vibrate 2, Vibrate 3, Vibrate 4,
+//               Vibration 1, Vibration 2, Vibration 3, Vibration 4
+// The enable checkboxes are always named enableVibrate1-4 regardless.
+function buildButtons(naming = 'vibrate') {
+  const buttons = [];
+
+  for (let i = 1; i <= 4; i++) {
+    // Primary label based on naming preference
+    if (naming === 'vibrate' || naming === 'both') {
+      buttons.push({
+        key:       `vibrate${i}`,
+        enableKey: `enableVibrate${i}`,
+        label:     `Vibrate ${i}`,
+        command:   `vibrate${i}`,
+      });
+    }
+    if (naming === 'vibration' || naming === 'both') {
+      buttons.push({
+        key:       `vibration${i}`,
+        enableKey: `enableVibrate${i}`,  // same checkbox controls both
+        label:     `Vibration ${i}`,
+        command:   `vibrate${i}`,
+      });
+    }
+  }
+
+  if (naming === 'vibrate' || naming === 'both') {
+    buttons.push({ key: 'vibrateStop',   enableKey: 'enableVibrateStop', label: 'Stop Vibrate',    command: 'vibrateStop' });
+  }
+  if (naming === 'vibration' || naming === 'both') {
+    buttons.push({ key: 'vibrationStop', enableKey: 'enableVibrateStop', label: 'Stop Vibration',  command: 'vibrateStop' });
+  }
+  buttons.push(
+    { key: 'position1',   enableKey: 'enablePosition1',   label: 'Position 1',     command: 'position1'   },
+    { key: 'position2',   enableKey: 'enablePosition2',   label: 'Position 2',     command: 'position2'   },
+    { key: 'position3',   enableKey: 'enablePosition3',   label: 'Position 3',     command: 'position3'   },
+    { key: 'position4',   enableKey: 'enablePosition4',   label: 'Position 4',     command: 'position4'   },
+    { key: 'flat',        enableKey: 'enableFlat',        label: 'Flat',           command: 'flat'        },
+  );
+
+  return buttons;
+}
 
 module.exports = (api) => {
   api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, TempurPedicPlatform);
@@ -56,7 +87,14 @@ class TempurPedicPlatform {
     this.cachedAccessories.set(accessory.UUID, accessory);
   }
 
+  _enabledButtons(base) {
+    return buildButtons(base.vibrationNaming || 'vibrate')
+      .filter(button => base[button.enableKey] !== false);
+  }
+
   _syncAccessories() {
+    // Map of "ip:buttonKey" → HAP service, so Matter handlers can update HAP state too
+    this._hapServices = this._hapServices || new Map();
     const bases = this.config.bases;
 
     if (!bases || bases.length === 0) {
@@ -87,7 +125,12 @@ class TempurPedicPlatform {
       }
 
       accessory.displayName = base.name;
-      this._configureAccessory(accessory, base);
+      this._configureHAPAccessory(accessory, base);
+    }
+
+    if (this.api.isMatterEnabled && this.api.isMatterEnabled()) {
+      this.log.info('[TempurPedic] Matter is enabled — registering Matter accessories');
+      this._registerMatterAccessories(bases);
     }
 
     for (const [uuid, accessory] of this.cachedAccessories) {
@@ -99,78 +142,157 @@ class TempurPedicPlatform {
     }
   }
 
-  _sendCommand(ip, commandKey, log) {
-    const payload = COMMANDS[commandKey];
-    if (!payload) {
-      log.error(`[TempurPedic] Unknown command: ${commandKey}`);
-      return;
-    }
+  // ── HomeKit (HAP) ──────────────────────────────────────────────────────────
 
-    const client = dgram.createSocket('udp4');
-
-    client.send(payload, 0, payload.length, UDP_PORT, ip, (err) => {
-      if (err) {
-        log.error(`[TempurPedic] UDP send failed: ${err.message}`);
-      } else {
-        log.debug(`[TempurPedic] UDP sent ${commandKey} to ${ip}:${UDP_PORT}`);
-      }
-      client.close();
-    });
-  }
-
-  _configureAccessory(accessory, base) {
+  _configureHAPAccessory(accessory, base) {
     const { Service, Characteristic } = this.api.hap;
-    const delay = parseInt(base.delay) || 1000;
 
     accessory.getService(Service.AccessoryInformation)
       .setCharacteristic(Characteristic.Name,             base.name)
       .setCharacteristic(Characteristic.Manufacturer,     'Tempur-Pedic')
       .setCharacteristic(Characteristic.Model,            'Smart Base')
       .setCharacteristic(Characteristic.SerialNumber,     base.ip)
-      .setCharacteristic(Characteristic.FirmwareRevision, '1.0.0');
+      .setCharacteristic(Characteristic.FirmwareRevision, PLUGIN_VERSION);
 
-    for (const button of BUTTONS) {
-      // Skip if explicitly disabled in config
-      const enableKey = 'enable' + button.key.charAt(0).toUpperCase() + button.key.slice(1);
-      const enabled = base[enableKey] !== false;
+    const enabledButtons = this._enabledButtons(base);
+    const activeKeys = new Set(enabledButtons.map(b => b.key));
 
-      if (!enabled) {
+    // Remove any stale services (disabled or naming changed)
+    const allPossible = buildButtons('both');
+    for (const button of allPossible) {
+      if (!activeKeys.has(button.key)) {
         const existing = accessory.getServiceById(Service.Switch, button.key);
         if (existing) {
           accessory.removeService(existing);
-          this.log.info(`[TempurPedic] Removed disabled switch: ${button.label}`);
+          this.log.info(`[TempurPedic] Removed switch: ${button.label}`);
         }
-        continue;
       }
+    }
 
-      const serviceName = button.label;
+    for (const button of enabledButtons) {
       let svc = accessory.getServiceById(Service.Switch, button.key);
+      if (!svc) svc = accessory.addService(Service.Switch, button.label, button.key);
 
-      if (!svc) {
-        svc = accessory.addService(Service.Switch, serviceName, button.key);
-      }
-
-      svc.displayName = serviceName;
-      svc.setCharacteristic(Characteristic.Name, serviceName);
-
+      svc.displayName = button.label;
+      svc.setCharacteristic(Characteristic.Name, button.label);
       if (Characteristic.ConfiguredName) {
-        svc.setCharacteristic(Characteristic.ConfiguredName, serviceName);
+        svc.setCharacteristic(Characteristic.ConfiguredName, button.label);
       }
-
       svc.setPrimaryService(false);
 
-      svc.getCharacteristic(Characteristic.On)
-        .onGet(() => false)
-        .onSet((value) => {
-          if (!value) return;
+      // Store reference so Matter handlers can also reset this HAP switch
+      this._hapServices.set(`${base.ip}:${button.key}`, { svc, Characteristic });
 
-          this.log.info(`[TempurPedic] ${base.name} → ${button.label}`);
-          this._sendCommand(base.ip, button.key, this.log);
+      const char = svc.getCharacteristic(Characteristic.On);
 
-          setTimeout(() => {
-            svc.updateCharacteristic(Characteristic.On, false);
-          }, delay);
-        });
+      // Use .on() directly instead of .onGet()/.onSet() so removeAllListeners
+      // correctly removes all handlers before re-registering — prevents stacking
+      char.removeAllListeners('get');
+      char.removeAllListeners('set');
+
+      char.on('get', (callback) => {
+        callback(null, false);
+      });
+
+      char.on('set', (value, callback) => {
+        callback(null);
+        if (!value) {
+          this.log.debug(`[TempurPedic] ${base.name} → ${button.label} OFF`);
+          return;
+        }
+        this.log.info(`[TempurPedic] ${base.name} → ${button.label} ON`);
+        this._sendCommand(base.ip, button.command);
+        setTimeout(() => {
+          this.log.info(`[TempurPedic] ${base.name} → ${button.label} OFF (auto-reset)`);
+          svc.updateCharacteristic(Characteristic.On, false);
+        }, parseInt(base.delay) || 1000);
+      });
     }
+  }
+
+  // ── Matter ─────────────────────────────────────────────────────────────────
+
+  _registerMatterAccessories(bases) {
+    const matter = this.api.matter;
+
+    for (const base of bases) {
+      if (!base.name || !base.ip) continue;
+
+      const enabledButtons = this._enabledButtons(base);
+      if (enabledButtons.length === 0) continue;
+
+      const delay = parseInt(base.delay) || 1000;
+
+      const accessories = enabledButtons.map(button => {
+        const uuid = matter.uuid.generate(`${PLUGIN_NAME}:matter:${base.ip}:${button.key}`);
+
+        const deviceType = matter.deviceTypes.OnOffOutlet;
+
+        return {
+          UUID:             uuid,
+          displayName:      `${base.name} ${button.label}`,
+          deviceType,
+          serialNumber:     `${base.ip}-${button.key}`,
+          manufacturer:     'Tempur-Pedic',
+          model:            'Smart Base',
+          firmwareRevision: PLUGIN_VERSION,
+          clusters: { onOff: { onOff: false } },
+          handlers: {
+            onOff: {
+              on: async (args, context) => {
+                this.log.info(`[TempurPedic] Matter: ${base.name} → ${button.label} ON`);
+                this._sendCommand(base.ip, button.command);
+
+                // Auto-reset both Matter and HAP state after delay
+                setTimeout(async () => {
+                  // Reset Matter state
+                  try {
+                    await matter.updateAccessoryState(uuid, { onOff: false });
+                    this.log.info(`[TempurPedic] Matter: ${base.name} → ${button.label} OFF (auto-reset)`);
+                  } catch (e) {
+                    this.log.debug(`[TempurPedic] Matter state reset error: ${e.message}`);
+                  }
+                  // Also reset the corresponding HAP switch so HomeKit shows Off
+                  const hapRef = this._hapServices && this._hapServices.get(`${base.ip}:${button.key}`);
+                  if (hapRef) {
+                    hapRef.svc.updateCharacteristic(hapRef.Characteristic.On, false);
+                  }
+                }, delay);
+              },
+              off: async () => {
+                this.log.debug(`[TempurPedic] Matter: ${base.name} → ${button.label} OFF`);
+              },
+            },
+          },
+        };
+      });
+
+      try {
+        matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessories);
+        this.log.info(`[TempurPedic] Registered ${accessories.length} Matter accessories for ${base.name}`);
+      } catch (err) {
+        this.log.error(`[TempurPedic] Failed to register Matter accessories: ${err.message}`);
+      }
+    }
+  }
+
+  // ── UDP ────────────────────────────────────────────────────────────────────
+
+  _sendCommand(ip, commandKey) {
+    const payload = COMMANDS[commandKey];
+    if (!payload) {
+      this.log.error(`[TempurPedic] Unknown command: ${commandKey}`);
+      return;
+    }
+
+    const client = dgram.createSocket('udp4');
+    client.send(payload, 0, payload.length, UDP_PORT, ip, (err) => {
+      if (err) {
+        this.log.error(`[TempurPedic] UDP send failed: ${err.message}`);
+      } else {
+        this.log.debug(`[TempurPedic] UDP sent ${commandKey} to ${ip}:${UDP_PORT}`);
+      }
+      client.close();
+    });
   }
 }
