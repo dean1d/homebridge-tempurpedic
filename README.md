@@ -1,5 +1,9 @@
 # homebridge-tempurpedic
 
+<p align="center">
+  <img src="assets/logo.png" alt="homebridge-tempurpedic logo" width="220" />
+</p>
+
 Homebridge platform plugin for Tempur-Pedic Smart Bases. Add one config entry per bed base and all 10 command switches appear in HomeKit automatically, controllable via Siri, the Home app, and Alexa via Matter.
 
 Commands are sent directly to the base over UDP — **no Java or external dependencies required**.

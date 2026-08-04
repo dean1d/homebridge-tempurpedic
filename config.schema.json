@@ -2,7 +2,7 @@
   "pluginAlias": "TempurPedic",
   "pluginType": "platform",
   "singular": true,
-  "headerDisplay": "Control your Tempur-Pedic Smart Base(s) from HomeKit. Each base will appear as a single device with its enabled switches.",
+  "headerDisplay": "<p align=\"center\"><img src=\"https://raw.githubusercontent.com/dean1d/homebridge-tempurpedic/main/assets/logo.png\" alt=\"homebridge-tempurpedic logo\" width=\"180\"></p>\n\nControl your Tempur-Pedic Smart Base(s) from HomeKit. Each base will appear as a single device with its enabled switches.",
   "footerDisplay": "",
   "schema": {
     "type": "object",
