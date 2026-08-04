@@ -1,6 +1,6 @@
 {
   "name": "homebridge-tempurpedic",
-  "version": "4.6.8",
+  "version": "4.6.9",
   "description": "Homebridge plugin for Tempur-Pedic Smart Bases. Control vibration, positions, and flat via HomeKit and Alexa. No Java or external dependencies required.",
   "main": "index.js",
   "keywords": [
