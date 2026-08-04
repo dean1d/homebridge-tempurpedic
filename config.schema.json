@@ -6,6 +6,9 @@
   "footerDisplay": "",
   "schema": {
     "type": "object",
+    "required": [
+      "bases"
+    ],
     "properties": {
       "name": {
         "type": "string",
@@ -15,24 +18,25 @@
         "title": "Bed Bases",
         "buttonText": "Add Bed Base",
         "type": "array",
-        "required": true,
         "orderable": false,
         "items": {
           "title": "Bed Base",
           "type": "object",
+          "required": [
+            "name",
+            "ip"
+          ],
           "properties": {
             "name": {
               "title": "Bed Base Name",
               "description": "The name that will appear in HomeKit (e.g. Bedroom Base).",
               "type": "string",
-              "required": true,
               "placeholder": "Bedroom Base"
             },
             "ip": {
               "title": "IP Address",
               "description": "The local IP address of the Tempur-Pedic Smart Base on your network.",
               "type": "string",
-              "required": true,
               "format": "ipv4",
               "placeholder": "192.168.1.100"
             },
@@ -40,7 +44,6 @@
               "title": "Delay (ms)",
               "description": "How long in milliseconds before each switch resets back to off after being triggered.",
               "type": "integer",
-              "required": false,
               "default": 1000,
               "minimum": 100,
               "maximum": 10000,

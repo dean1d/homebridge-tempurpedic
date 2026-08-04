@@ -2,6 +2,12 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [4.6.10] - 2026-08-04
+
+### Fixed
+- Declared both HAP and Matter transport support in the package metadata
+- Updated `config.schema.json` to use standard object-level `required` arrays
+
 ## [4.6.5] - 2026-05-14
 
 ### Added
