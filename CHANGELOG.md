@@ -2,7 +2,7 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
-## [4.6.11] - 2026-08-08
+## [5.0.0] - 2026-08-08
 
 ### Added
 - Added the Verified by Homebridge badge to the README
