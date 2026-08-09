@@ -2,6 +2,15 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [4.6.11] - 2026-08-08
+
+### Added
+- Added the Verified by Homebridge badge to the README
+
+### Fixed
+- Added a UDP socket error listener so socket-level errors are logged instead of thrown
+- Removed the obsolete manual installer and its Java/JAR installation instructions
+
 ## [4.6.10] - 2026-08-04
 
 ### Fixed

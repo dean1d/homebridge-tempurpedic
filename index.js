@@ -286,13 +286,25 @@ class TempurPedicPlatform {
     }
 
     const client = dgram.createSocket('udp4');
+    let closed = false;
+    const closeClient = () => {
+      if (closed) return;
+      closed = true;
+      client.close();
+    };
+
+    client.once('error', (err) => {
+      this.log.error(`[TempurPedic] UDP socket error: ${err.message}`);
+      closeClient();
+    });
+
     client.send(payload, 0, payload.length, UDP_PORT, ip, (err) => {
       if (err) {
         this.log.error(`[TempurPedic] UDP send failed: ${err.message}`);
       } else {
         this.log.debug(`[TempurPedic] UDP sent ${commandKey} to ${ip}:${UDP_PORT}`);
       }
-      client.close();
+      closeClient();
     });
   }
 }
