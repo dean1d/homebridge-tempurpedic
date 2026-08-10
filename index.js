@@ -60,11 +60,24 @@ function buildButtons(naming = 'vibrate') {
     { key: 'position2',   enableKey: 'enablePosition2',   label: 'Position 2',     command: 'position2'   },
     { key: 'position3',   enableKey: 'enablePosition3',   label: 'Position 3',     command: 'position3'   },
     { key: 'position4',   enableKey: 'enablePosition4',   label: 'Position 4',     command: 'position4'   },
-    { key: 'flat',        enableKey: 'enableFlat',        label: 'Flat',           command: 'flat'        },
+    { key: 'flat',        enableKey: 'enableFlat',        label: 'Bed Flat',       command: 'flat'        },
   );
 
   return buttons;
 }
+
+const BUTTON_NAME_CONFIG_KEYS = {
+  vibrate1:    'vibrate1Name',
+  vibrate2:    'vibrate2Name',
+  vibrate3:    'vibrate3Name',
+  vibrate4:    'vibrate4Name',
+  vibrateStop: 'vibrateStopName',
+  position1:   'position1Name',
+  position2:   'position2Name',
+  position3:   'position3Name',
+  position4:   'position4Name',
+  flat:        'flatName',
+};
 
 module.exports = (api) => {
   api.registerPlatform(PLUGIN_NAME, PLATFORM_NAME, TempurPedicPlatform);
@@ -89,7 +102,15 @@ class TempurPedicPlatform {
 
   _enabledButtons(base) {
     return buildButtons(base.vibrationNaming || 'vibrate')
-      .filter(button => base[button.enableKey] !== false);
+      .filter(button => base[button.enableKey] !== false)
+      .map(button => {
+        const nameKey = BUTTON_NAME_CONFIG_KEYS[button.command];
+        const customName = nameKey && typeof base[nameKey] === 'string'
+          ? base[nameKey].trim()
+          : '';
+
+        return customName ? { ...button, label: customName } : button;
+      });
   }
 
   _syncAccessories() {
@@ -226,7 +247,7 @@ class TempurPedicPlatform {
       const accessories = enabledButtons.map(button => {
         const uuid = matter.uuid.generate(`${PLUGIN_NAME}:matter:${base.ip}:${button.key}`);
 
-        const deviceType = matter.deviceTypes.OnOffOutlet;
+        const deviceType = matter.deviceTypes.OnOffSwitch;
 
         return {
           UUID:             uuid,
@@ -247,7 +268,7 @@ class TempurPedicPlatform {
                 setTimeout(async () => {
                   // Reset Matter state
                   try {
-                    await matter.updateAccessoryState(uuid, { onOff: false });
+                    await matter.updateAccessoryState(uuid, 'onOff', { onOff: false });
                     this.log.info(`[TempurPedic] Matter: ${base.name} → ${button.label} OFF (auto-reset)`);
                   } catch (e) {
                     this.log.debug(`[TempurPedic] Matter state reset error: ${e.message}`);

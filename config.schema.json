@@ -75,33 +75,93 @@
                 }
               ]
             },
+            "vibrate1Name": {
+              "title": "Vibrate 1 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Vibrate 1"
+            },
+            "vibrate2Name": {
+              "title": "Vibrate 2 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Vibrate 2"
+            },
+            "vibrate3Name": {
+              "title": "Vibrate 3 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Vibrate 3"
+            },
+            "vibrate4Name": {
+              "title": "Vibrate 4 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Vibrate 4"
+            },
+            "vibrateStopName": {
+              "title": "Stop Vibrate Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Stop Vibrate"
+            },
+            "position1Name": {
+              "title": "Position 1 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Position 1"
+            },
+            "position2Name": {
+              "title": "Position 2 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Position 2"
+            },
+            "position3Name": {
+              "title": "Position 3 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Position 3"
+            },
+            "position4Name": {
+              "title": "Position 4 Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Position 4"
+            },
+            "flatName": {
+              "title": "Bed Flat Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Bed Flat"
+            },
             "enableVibrate1": {
               "title": "Vibrate 1",
-              "description": "Include switch 1 in HomeKit.",
+              "description": "Include switch 1 in HomeKit and Matter.",
               "type": "boolean",
               "default": true
             },
             "enableVibrate2": {
               "title": "Vibrate 2",
-              "description": "Include switch 2 in HomeKit.",
+              "description": "Include switch 2 in HomeKit and Matter.",
               "type": "boolean",
               "default": true
             },
             "enableVibrate3": {
               "title": "Vibrate 3",
-              "description": "Include switch 3 in HomeKit.",
+              "description": "Include switch 3 in HomeKit and Matter.",
               "type": "boolean",
               "default": true
             },
             "enableVibrate4": {
               "title": "Vibrate 4",
-              "description": "Include switch 4 in HomeKit.",
+              "description": "Include switch 4 in HomeKit and Matter.",
               "type": "boolean",
               "default": true
             },
             "enableVibrateStop": {
               "title": "Stop Vibration / Stop Vibrate",
-              "description": "Include the stop vibration switch in HomeKit.",
+              "description": "Include the stop vibration switch in HomeKit and Matter.",
               "type": "boolean",
               "default": true
             },
@@ -158,6 +218,36 @@
             "vibration": "Vibration (e.g. Vibration 1)",
             "both": "Both"
           }
+        },
+        {
+          "key": "bases[].vibrate1Name"
+        },
+        {
+          "key": "bases[].vibrate2Name"
+        },
+        {
+          "key": "bases[].vibrate3Name"
+        },
+        {
+          "key": "bases[].vibrate4Name"
+        },
+        {
+          "key": "bases[].vibrateStopName"
+        },
+        {
+          "key": "bases[].position1Name"
+        },
+        {
+          "key": "bases[].position2Name"
+        },
+        {
+          "key": "bases[].position3Name"
+        },
+        {
+          "key": "bases[].position4Name"
+        },
+        {
+          "key": "bases[].flatName"
         },
         {
           "key": "bases[].enableVibrate1"

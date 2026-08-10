@@ -2,6 +2,17 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## Unreleased
+
+### Added
+- Added configurable names for every bed command, with the existing spellings as defaults and `Bed Flat` as the new flat-command default
+
+### Changed
+- Matter command accessories now use the `OnOffSwitch` device type instead of appearing as plugs
+
+### Fixed
+- Fixed Matter auto-reset by passing the required On/Off cluster name to Homebridge's state update API
+
 ## [5.0.0] - 2026-08-08
 
 ### Added

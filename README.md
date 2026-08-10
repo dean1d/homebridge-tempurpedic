@@ -34,7 +34,7 @@ Or search for **homebridge-tempurpedic** in the Homebridge UI plugin search.
 
 ## Configuration
 
-Use the Homebridge UI to configure the plugin — no manual JSON editing required. Add one entry per bed base with its name, IP address, and optional delay. You can also enable or disable individual switches per base.
+Use the Homebridge UI to configure the plugin — no manual JSON editing required. Add one entry per bed base with its name, IP address, and optional delay. You can also rename or enable/disable individual switches per base.
 
 ### Manual config.json example
 
@@ -105,7 +105,7 @@ For a base named `"Bedroom Base"`:
 | Bedroom Base Position 2   | `0x3305320394 5C0100C9` |
 | Bedroom Base Position 3   | `0x3305320394 5C0200CA` |
 | Bedroom Base Position 4   | `0x3305320394 5C0300CB` |
-| Bedroom Base Flat         | `0x3305320A945C0400CC` |
+| Bedroom Base Bed Flat     | `0x3305320A945C0400CC` |
 
 ---
 
