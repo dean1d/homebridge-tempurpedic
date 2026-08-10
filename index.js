@@ -269,9 +269,23 @@ class TempurPedicPlatform {
                   // Reset Matter state
                   try {
                     await matter.updateAccessoryState(uuid, 'onOff', { onOff: false });
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    let state = await matter.getAccessoryState(uuid, 'onOff');
+                    for (const retryDelay of [250, 500]) {
+                      if (state && state.onOff === false) break;
+
+                      await matter.updateAccessoryState(uuid, 'onOff', { onOff: false });
+                      await new Promise(resolve => setTimeout(resolve, retryDelay));
+                      state = await matter.getAccessoryState(uuid, 'onOff');
+                    }
+
+                    if (!state || state.onOff !== false) {
+                      throw new Error(`Off state was not confirmed (state: ${state ? state.onOff : 'unavailable'})`);
+                    }
                     this.log.info(`[TempurPedic] Matter: ${base.name} → ${button.label} OFF (auto-reset)`);
                   } catch (e) {
-                    this.log.debug(`[TempurPedic] Matter state reset error: ${e.message}`);
+                    this.log.warn(`[TempurPedic] Matter state reset was not confirmed: ${e.message}`);
                   }
                   // Also reset the corresponding HAP switch so HomeKit shows Off
                   const hapRef = this._hapServices && this._hapServices.get(`${base.ip}:${button.key}`);

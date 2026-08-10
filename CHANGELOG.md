@@ -12,6 +12,7 @@ All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
 ### Fixed
 - Fixed Matter auto-reset by passing the required On/Off cluster name to Homebridge's state update API
+- Matter auto-reset now verifies the endpoint reports Off and retries transient state-update failures before logging success
 
 ## [5.0.0] - 2026-08-08
 
