@@ -2,7 +2,7 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
-## [5.1.0-beta.2] - 2026-08-12
+## [5.1.0] - 2026-08-12
 
 ### Added
 - Added configurable names for every bed command, with the existing spellings as defaults and `Bed Flat` as the new flat-command default
