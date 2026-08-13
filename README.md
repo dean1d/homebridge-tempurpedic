@@ -10,6 +10,8 @@
 
 Homebridge platform plugin for Tempur-Pedic Smart Bases. Add one config entry per bed base and all 10 command switches appear in HomeKit automatically, controllable via Siri, the Home app, and Alexa via Matter.
 
+For Matter controllers, command buttons are published as on/off plug-in units. This is the controllable-load device type recognized by Alexa; Matter's `OnOffSwitch` type represents a wall switch or other input controller and is not exposed by Alexa as a controllable button.
+
 Commands are sent directly to the base over UDP — **no Java or external dependencies required**.
 
 ---

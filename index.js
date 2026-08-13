@@ -7,6 +7,15 @@ const PLUGIN_NAME   = 'homebridge-tempurpedic';
 const PLATFORM_NAME = 'TempurPedic';
 const UDP_PORT      = 50007;
 
+function associateMatterAccessory(accessory) {
+  // Homebridge 2.2+ serializes these ownership fields in its Matter cache.
+  // Supplying them prevents registered devices from being treated as orphaned
+  // and removed after Homebridge restarts.
+  accessory._associatedPlugin = PLUGIN_NAME;
+  accessory._associatedPlatform = PLATFORM_NAME;
+  return accessory;
+}
+
 const COMMANDS = {
   vibrate1:    Buffer.from('3305320394' + '8D007861', 'hex'),
   vibrate2:    Buffer.from('3305320394' + '8D017860', 'hex'),
@@ -151,7 +160,9 @@ class TempurPedicPlatform {
 
     if (this.api.isMatterEnabled && this.api.isMatterEnabled()) {
       this.log.info('[TempurPedic] Matter is enabled — registering Matter accessories');
-      this._registerMatterAccessories(bases);
+      this._registerMatterAccessories(bases).catch((err) => {
+        this.log.error(`[TempurPedic] Matter accessory registration failed: ${err.message}`);
+      });
     }
 
     for (const [uuid, accessory] of this.cachedAccessories) {
@@ -233,23 +244,26 @@ class TempurPedicPlatform {
 
   // ── Matter ─────────────────────────────────────────────────────────────────
 
-  _registerMatterAccessories(bases) {
+  async _registerMatterAccessories(bases) {
     const matter = this.api.matter;
+    let registered = 0;
+    let expected = 0;
 
     for (const base of bases) {
       if (!base.name || !base.ip) continue;
 
       const enabledButtons = this._enabledButtons(base);
       if (enabledButtons.length === 0) continue;
+      expected += enabledButtons.length;
 
       const delay = parseInt(base.delay) || 1000;
 
       const accessories = enabledButtons.map(button => {
         const uuid = matter.uuid.generate(`${PLUGIN_NAME}:matter:${base.ip}:${button.key}`);
 
-        const deviceType = matter.deviceTypes.OnOffSwitch;
+        const deviceType = matter.deviceTypes.OnOffOutlet;
 
-        return {
+        return associateMatterAccessory({
           UUID:             uuid,
           displayName:      `${base.name} ${button.label}`,
           deviceType,
@@ -299,16 +313,22 @@ class TempurPedicPlatform {
               },
             },
           },
-        };
+        });
       });
 
-      try {
-        matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, accessories);
-        this.log.info(`[TempurPedic] Registered ${accessories.length} Matter accessories for ${base.name}`);
-      } catch (err) {
-        this.log.error(`[TempurPedic] Failed to register Matter accessories: ${err.message}`);
+      for (const accessory of accessories) {
+        try {
+          await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
+          registered++;
+        } catch (err) {
+          this.log.warn(
+            `[TempurPedic] Matter accessory registration failed for ${accessory.displayName}: ${err.message}`,
+          );
+        }
       }
     }
+
+    this.log.info(`[TempurPedic] Registered ${registered} of ${expected} Matter accessories.`);
   }
 
   // ── UDP ────────────────────────────────────────────────────────────────────

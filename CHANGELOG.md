@@ -2,17 +2,19 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
-## Unreleased
+## [5.1.0-beta.2] - 2026-08-12
 
 ### Added
 - Added configurable names for every bed command, with the existing spellings as defaults and `Bed Flat` as the new flat-command default
 
 ### Changed
-- Matter command accessories now use the `OnOffSwitch` device type instead of appearing as plugs
+- Matter command accessories use Alexa-compatible `OnOffOutlet` devices because Alexa treats `OnOffSwitch` as an input/controller rather than a controllable load
 
 ### Fixed
 - Fixed Matter auto-reset by passing the required On/Off cluster name to Homebridge's state update API
 - Matter auto-reset now verifies the endpoint reports Off and retries transient state-update failures before logging success
+- Preserve Matter accessory plugin and platform ownership so devices remain associated with TempurPedic after Homebridge restarts
+- Register Matter accessories independently so one invalid endpoint cannot prevent the remaining bed controls from appearing
 
 ## [5.0.0] - 2026-08-08
 
