@@ -2,6 +2,11 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.1.1] - 2026-08-16
+
+### Fixed
+- Register the complete Matter outlet topology in one deterministic startup batch instead of separate per-outlet calls. This prevents controllers such as Alexa from observing partial device lists and recreating outlets, which can reset group assignments and routines.
+
 ## [5.1.0] - 2026-08-12
 
 ### Added

@@ -246,15 +246,13 @@ class TempurPedicPlatform {
 
   async _registerMatterAccessories(bases) {
     const matter = this.api.matter;
-    let registered = 0;
-    let expected = 0;
+    const allAccessories = [];
 
     for (const base of bases) {
       if (!base.name || !base.ip) continue;
 
       const enabledButtons = this._enabledButtons(base);
       if (enabledButtons.length === 0) continue;
-      expected += enabledButtons.length;
 
       const delay = parseInt(base.delay) || 1000;
 
@@ -316,19 +314,16 @@ class TempurPedicPlatform {
         });
       });
 
-      for (const accessory of accessories) {
-        try {
-          await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, [accessory]);
-          registered++;
-        } catch (err) {
-          this.log.warn(
-            `[TempurPedic] Matter accessory registration failed for ${accessory.displayName}: ${err.message}`,
-          );
-        }
-      }
+      allAccessories.push(...accessories);
     }
 
-    this.log.info(`[TempurPedic] Registered ${registered} of ${expected} Matter accessories.`);
+    if (allAccessories.length === 0) return;
+
+    // Register the complete, deterministic endpoint set in one call. Sending
+    // one accessory per call can expose a partial bridge topology while
+    // Homebridge is starting, which some controllers treat as removals/additions.
+    await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, allAccessories);
+    this.log.info(`[TempurPedic] Registered ${allAccessories.length} Matter accessories.`);
   }
 
   // ── UDP ────────────────────────────────────────────────────────────────────
