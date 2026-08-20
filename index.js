@@ -103,6 +103,8 @@ class TempurPedicPlatform {
     this._connectivityStates = new Map();
     this._connectivityTimers = new Map();
     this._probeProcesses = new Set();
+    this._pingUnavailableWarned = new Set();
+    this._matterCachedAccessories = new Map();
 
     this.api.on('didFinishLaunching', () => {
       this._syncAccessories();
@@ -113,6 +115,14 @@ class TempurPedicPlatform {
   configureAccessory(accessory) {
     this.log.info(`[TempurPedic] Loading cached accessory: ${accessory.displayName}`);
     this.cachedAccessories.set(accessory.UUID, accessory);
+  }
+
+  // Matter equivalent of configureAccessory — called for every Matter accessory
+  // restored from cache on startup, so we know which UUIDs already exist and
+  // must be updated in place rather than re-registered (see _registerMatterAccessories).
+  configureMatterAccessory(accessory) {
+    this.log.info(`[TempurPedic] Loading cached Matter accessory: ${accessory.displayName}`);
+    this._matterCachedAccessories.set(accessory.UUID, accessory);
   }
 
   _enabledButtons(base) {
@@ -359,11 +369,39 @@ class TempurPedicPlatform {
 
     if (allAccessories.length === 0) return;
 
-    // Register the complete, deterministic endpoint set in one call. Sending
-    // one accessory per call can expose a partial bridge topology while
+    const expectedUUIDs = new Set(allAccessories.map(a => a.UUID));
+    const newAccessories = allAccessories.filter(a => !this._matterCachedAccessories.has(a.UUID));
+    const existingAccessories = allAccessories.filter(a => this._matterCachedAccessories.has(a.UUID));
+
+    // Register the complete, deterministic set of brand-new endpoints in one call.
+    // Sending one accessory per call can expose a partial bridge topology while
     // Homebridge is starting, which some controllers treat as removals/additions.
-    await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, allAccessories);
-    this.log.info(`[TempurPedic] Registered ${allAccessories.length} Matter accessories.`);
+    if (newAccessories.length > 0) {
+      await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, newAccessories);
+      this.log.info(`[TempurPedic] Registered ${newAccessories.length} new Matter accessories.`);
+    }
+
+    // Accessories already known from a previous run must NOT be re-registered —
+    // registerPlatformAccessories behaves like HAP's, so calling it again for an
+    // existing UUID recreates the endpoint and drops any commissioning/binding a
+    // controller (e.g. Alexa) already holds for it. updatePlatformAccessories
+    // refreshes handlers/state in place without disturbing that identity.
+    if (existingAccessories.length > 0) {
+      await matter.updatePlatformAccessories(existingAccessories);
+      this.log.info(`[TempurPedic] Updated ${existingAccessories.length} existing Matter accessories.`);
+    }
+
+    for (const accessory of allAccessories) {
+      this._matterCachedAccessories.set(accessory.UUID, accessory);
+    }
+
+    const staleUUIDs = [...this._matterCachedAccessories.keys()].filter(uuid => !expectedUUIDs.has(uuid));
+    if (staleUUIDs.length > 0) {
+      const staleAccessories = staleUUIDs.map(uuid => this._matterCachedAccessories.get(uuid));
+      await matter.unregisterPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, staleAccessories);
+      for (const uuid of staleUUIDs) this._matterCachedAccessories.delete(uuid);
+      this.log.info(`[TempurPedic] Removed ${staleAccessories.length} stale Matter accessories.`);
+    }
   }
 
   // ── UDP ────────────────────────────────────────────────────────────────────
@@ -400,7 +438,14 @@ class TempurPedicPlatform {
     if (state.checking) return;
     state.checking = true;
     try {
-      const reachable = await this._probePing(base.ip);
+      const { reachable, spawnFailure, error } = await this._probePing(base.ip);
+      if (spawnFailure) {
+        if (!this._pingUnavailableWarned.has(base.ip)) {
+          this._pingUnavailableWarned.add(base.ip);
+          this.log.error(`[TempurPedic] ${base.name}: could not run "ping" (${error.code}). Connectivity sensor left unchanged until this is resolved — install/enable ping, grant it network permissions, or set enableConnectivitySensor to false.`);
+        }
+        return;
+      }
       if (reachable) {
         state.failures = 0;
         await this._setConnectivity(base, true);
@@ -426,7 +471,11 @@ class TempurPedicPlatform {
       let child;
       child = execFile('ping', args, { timeout: timeout + 1000, windowsHide: true }, (error) => {
         this._probeProcesses.delete(child);
-        resolve(!error);
+        // A string error.code (e.g. ENOENT, EACCES) means the `ping` binary itself
+        // could not be spawned — distinct from a non-zero exit for an unreachable
+        // host, which execFile reports with a numeric error.code (the exit code).
+        const spawnFailure = !!error && typeof error.code === 'string';
+        resolve({ reachable: !error, spawnFailure, error });
       });
       this._probeProcesses.add(child);
     });

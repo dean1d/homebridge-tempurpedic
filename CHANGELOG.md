@@ -2,6 +2,12 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.2.1-beta.1] - 2026-08-20
+
+### Fixed
+- Implement `configureMatterAccessory` and use `updatePlatformAccessories` for Matter accessories restored from cache, instead of always calling `registerPlatformAccessories`. Re-registering an already-known Matter accessory on every Homebridge restart could make controllers such as Alexa treat it as newly added and drop existing commissioning.
+- Distinguish a missing/unusable `ping` binary from a genuinely unreachable bed base. Environments without ICMP permissions (e.g. some containers) no longer silently flip the connectivity sensor to unavailable; a diagnostic error is logged once per base instead.
+
 ## [5.2.1-beta.0] - 2026-08-19
 
 ### Fixed
