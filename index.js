@@ -1,13 +1,12 @@
 'use strict';
 
 const dgram = require('dgram');
-const net = require('net');
+const { execFile } = require('child_process');
 const { version: PLUGIN_VERSION } = require('./package.json');
 
 const PLUGIN_NAME   = 'homebridge-tempurpedic';
 const PLATFORM_NAME = 'TempurPedic';
 const UDP_PORT      = 50007;
-const CONNECTIVITY_PORT = 2000;
 const CONNECTIVITY_TIMEOUT = 2000;
 
 function associateMatterAccessory(accessory) {
@@ -103,7 +102,7 @@ class TempurPedicPlatform {
     this.cachedAccessories = new Map();
     this._connectivityStates = new Map();
     this._connectivityTimers = new Map();
-    this._probeSockets = new Set();
+    this._probeProcesses = new Set();
 
     this.api.on('didFinishLaunching', () => {
       this._syncAccessories();
@@ -401,7 +400,7 @@ class TempurPedicPlatform {
     if (state.checking) return;
     state.checking = true;
     try {
-      const reachable = await this._probeTcp(base.ip);
+      const reachable = await this._probePing(base.ip);
       if (reachable) {
         state.failures = 0;
         await this._setConnectivity(base, true);
@@ -415,23 +414,21 @@ class TempurPedicPlatform {
     }
   }
 
-  _probeTcp(ip, timeout = CONNECTIVITY_TIMEOUT, port = CONNECTIVITY_PORT) {
+  _probePing(ip, timeout = CONNECTIVITY_TIMEOUT) {
     return new Promise((resolve) => {
-      const socket = net.createConnection({ host: ip, port });
-      this._probeSockets.add(socket);
-      let settled = false;
-      const finish = (reachable) => {
-        if (settled) return;
-        settled = true;
-        this._probeSockets.delete(socket);
-        socket.destroy();
-        resolve(reachable);
-      };
-      socket.setTimeout(timeout);
-      socket.once('connect', () => finish(true));
-      socket.once('timeout', () => finish(false));
-      socket.once('error', () => finish(false));
-      socket.once('close', () => finish(false));
+      const timeoutArg = process.platform === 'linux'
+        ? String(Math.max(1, Math.ceil(timeout / 1000)))
+        : String(timeout);
+      const args = process.platform === 'win32'
+        ? ['-n', '1', '-w', timeoutArg, ip]
+        : ['-c', '1', '-W', timeoutArg, ip];
+
+      let child;
+      child = execFile('ping', args, { timeout: timeout + 1000, windowsHide: true }, (error) => {
+        this._probeProcesses.delete(child);
+        resolve(!error);
+      });
+      this._probeProcesses.add(child);
     });
   }
 
@@ -472,8 +469,8 @@ class TempurPedicPlatform {
   _stopConnectivityMonitoring() {
     for (const timer of this._connectivityTimers.values()) clearInterval(timer);
     this._connectivityTimers.clear();
-    for (const socket of this._probeSockets) socket.destroy();
-    this._probeSockets.clear();
+    for (const child of this._probeProcesses) child.kill();
+    this._probeProcesses.clear();
   }
 
   _sendCommand(ip, commandKey) {

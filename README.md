@@ -96,9 +96,9 @@ Use the Homebridge UI to configure the plugin — no manual JSON editing require
 
 ### Bed connectivity sensor
 
-Each enabled sensor checks the bed base's TCP port `2000`, which identifies the expected Tempur-Pedic service more reliably than a ping alone. The contact is closed while the service is reachable. It opens after the configured number of consecutive failures and closes on the first successful check.
+Each enabled sensor pings the bed base's reserved IP address. The contact is closed while the base is reachable. It opens after the configured number of consecutive failures and closes on the first successful check.
 
-The default 30-second interval and three-failure threshold avoid brief Wi-Fi interruptions causing false alarms. Reserve the configured IP for the bed's MAC address in your router; runtime MAC checks are unreliable across Docker networks, VLANs, and routed subnets.
+The default 30-second interval and three-failure threshold avoid brief Wi-Fi interruptions causing false alarms. Reserve the configured IP for the bed's MAC address in your router so a ping response identifies the expected base. Runtime MAC checks are unreliable across Docker networks, VLANs, and routed subnets.
 
 ---
 

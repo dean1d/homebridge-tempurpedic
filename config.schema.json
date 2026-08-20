@@ -51,7 +51,7 @@
             },
             "enableConnectivitySensor": {
               "title": "Bed Connectivity Sensor",
-              "description": "Add a contact sensor that opens after the bed base fails the configured number of TCP connectivity checks.",
+              "description": "Add a contact sensor that opens after the bed base fails the configured number of ping checks.",
               "type": "boolean",
               "default": true
             },
@@ -63,7 +63,7 @@
             },
             "connectivityCheckInterval": {
               "title": "Connectivity Check Interval (seconds)",
-              "description": "How often to check TCP port 2000 on the bed base.",
+              "description": "How often to ping the bed base.",
               "type": "integer",
               "default": 30,
               "minimum": 5,

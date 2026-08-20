@@ -2,6 +2,11 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.2.1-beta.0] - 2026-08-19
+
+### Fixed
+- Use ICMP ping for bed connectivity checks because TCP port 2000 is not consistently available after a base reconnects.
+
 ## [5.2.0] - 2026-08-19
 
 ### Added
