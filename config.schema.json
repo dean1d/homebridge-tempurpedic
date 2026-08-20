@@ -49,6 +49,34 @@
               "maximum": 10000,
               "placeholder": "1000"
             },
+            "enableConnectivitySensor": {
+              "title": "Bed Connectivity Sensor",
+              "description": "Add a contact sensor that opens after the bed base fails the configured number of TCP connectivity checks.",
+              "type": "boolean",
+              "default": true
+            },
+            "connectivitySensorName": {
+              "title": "Connectivity Sensor Name",
+              "description": "Name shown in HomeKit and Matter.",
+              "type": "string",
+              "default": "Bed Connectivity"
+            },
+            "connectivityCheckInterval": {
+              "title": "Connectivity Check Interval (seconds)",
+              "description": "How often to check TCP port 2000 on the bed base.",
+              "type": "integer",
+              "default": 30,
+              "minimum": 5,
+              "maximum": 3600
+            },
+            "connectivityFailureThreshold": {
+              "title": "Failed Checks Before Open",
+              "description": "Number of consecutive failed checks required before the sensor reports open.",
+              "type": "integer",
+              "default": 3,
+              "minimum": 1,
+              "maximum": 10
+            },
             "vibrationNaming": {
               "title": "Vibration Button Naming",
               "description": "Choose how vibration switches are labelled. Affects Vibrate 1-4 and the Stop switch. \"Both\" creates switches for both spellings.",
@@ -209,6 +237,18 @@
         },
         {
           "key": "bases[].delay"
+        },
+        {
+          "key": "bases[].enableConnectivitySensor"
+        },
+        {
+          "key": "bases[].connectivitySensorName"
+        },
+        {
+          "key": "bases[].connectivityCheckInterval"
+        },
+        {
+          "key": "bases[].connectivityFailureThreshold"
         },
         {
           "key": "bases[].vibrationNaming",

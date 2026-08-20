@@ -2,6 +2,12 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.2.0] - 2026-08-19
+
+### Added
+- Add an optional per-base `Bed Connectivity` contact sensor to HAP and Matter. It opens after three consecutive failed TCP port 2000 checks by default and closes immediately when connectivity returns.
+- Add settings for the sensor name, check interval, and failure threshold.
+
 ## [5.1.1] - 2026-08-16
 
 ### Fixed

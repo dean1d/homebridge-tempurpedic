@@ -1,11 +1,14 @@
 'use strict';
 
 const dgram = require('dgram');
+const net = require('net');
 const { version: PLUGIN_VERSION } = require('./package.json');
 
 const PLUGIN_NAME   = 'homebridge-tempurpedic';
 const PLATFORM_NAME = 'TempurPedic';
 const UDP_PORT      = 50007;
+const CONNECTIVITY_PORT = 2000;
+const CONNECTIVITY_TIMEOUT = 2000;
 
 function associateMatterAccessory(accessory) {
   // Homebridge 2.2+ serializes these ownership fields in its Matter cache.
@@ -98,10 +101,14 @@ class TempurPedicPlatform {
     this.api = api;
     this.config = config;
     this.cachedAccessories = new Map();
+    this._connectivityStates = new Map();
+    this._connectivityTimers = new Map();
+    this._probeSockets = new Set();
 
     this.api.on('didFinishLaunching', () => {
       this._syncAccessories();
     });
+    this.api.on('shutdown', () => this._stopConnectivityMonitoring());
   }
 
   configureAccessory(accessory) {
@@ -156,6 +163,7 @@ class TempurPedicPlatform {
 
       accessory.displayName = base.name;
       this._configureHAPAccessory(accessory, base);
+      this._startConnectivityMonitoring(base);
     }
 
     if (this.api.isMatterEnabled && this.api.isMatterEnabled()) {
@@ -240,6 +248,25 @@ class TempurPedicPlatform {
         }, parseInt(base.delay) || 1000);
       });
     }
+
+    const existingSensor = accessory.getServiceById(Service.ContactSensor, 'connectivity');
+    if (base.enableConnectivitySensor === false) {
+      if (existingSensor) accessory.removeService(existingSensor);
+      return;
+    }
+
+    const sensorName = this._connectivitySensorName(base);
+    const state = this._connectivityState(base);
+    const sensor = existingSensor || accessory.addService(Service.ContactSensor, sensorName, 'connectivity');
+    sensor.displayName = sensorName;
+    sensor.setCharacteristic(Characteristic.Name, sensorName);
+    if (Characteristic.ConfiguredName) sensor.setCharacteristic(Characteristic.ConfiguredName, sensorName);
+    const contactState = sensor.getCharacteristic(Characteristic.ContactSensorState);
+    contactState.removeAllListeners('get');
+    contactState.on('get', callback => callback(null, state.connected
+      ? Characteristic.ContactSensorState.CONTACT_DETECTED
+      : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED));
+    state.hap = { sensor, Characteristic };
   }
 
   // ── Matter ─────────────────────────────────────────────────────────────────
@@ -252,8 +279,6 @@ class TempurPedicPlatform {
       if (!base.name || !base.ip) continue;
 
       const enabledButtons = this._enabledButtons(base);
-      if (enabledButtons.length === 0) continue;
-
       const delay = parseInt(base.delay) || 1000;
 
       const accessories = enabledButtons.map(button => {
@@ -315,6 +340,22 @@ class TempurPedicPlatform {
       });
 
       allAccessories.push(...accessories);
+
+      if (base.enableConnectivitySensor !== false) {
+        const state = this._connectivityState(base);
+        const uuid = matter.uuid.generate(`${PLUGIN_NAME}:matter:${base.ip}:connectivity`);
+        state.matterUuid = uuid;
+        allAccessories.push(associateMatterAccessory({
+          UUID: uuid,
+          displayName: `${base.name} ${this._connectivitySensorName(base)}`,
+          deviceType: matter.deviceTypes.ContactSensor,
+          serialNumber: `${base.ip}-connectivity`,
+          manufacturer: 'Tempur-Pedic',
+          model: 'Smart Base Connectivity',
+          firmwareRevision: PLUGIN_VERSION,
+          clusters: { booleanState: { stateValue: state.connected } },
+        }));
+      }
     }
 
     if (allAccessories.length === 0) return;
@@ -327,6 +368,113 @@ class TempurPedicPlatform {
   }
 
   // ── UDP ────────────────────────────────────────────────────────────────────
+
+  _connectivitySensorName(base) {
+    const configured = typeof base.connectivitySensorName === 'string'
+      ? base.connectivitySensorName.trim()
+      : '';
+    return configured || 'Bed Connectivity';
+  }
+
+  _connectivityState(base) {
+    if (!this._connectivityStates.has(base.ip)) {
+      this._connectivityStates.set(base.ip, { connected: true, failures: 0, checking: false });
+    }
+    return this._connectivityStates.get(base.ip);
+  }
+
+  _startConnectivityMonitoring(base) {
+    const existing = this._connectivityTimers.get(base.ip);
+    if (existing) clearInterval(existing);
+    this._connectivityTimers.delete(base.ip);
+    if (base.enableConnectivitySensor === false) return;
+
+    const intervalSeconds = Math.max(5, parseInt(base.connectivityCheckInterval) || 30);
+    void this._checkConnectivity(base);
+    const timer = setInterval(() => void this._checkConnectivity(base), intervalSeconds * 1000);
+    if (timer.unref) timer.unref();
+    this._connectivityTimers.set(base.ip, timer);
+  }
+
+  async _checkConnectivity(base) {
+    const state = this._connectivityState(base);
+    if (state.checking) return;
+    state.checking = true;
+    try {
+      const reachable = await this._probeTcp(base.ip);
+      if (reachable) {
+        state.failures = 0;
+        await this._setConnectivity(base, true);
+      } else {
+        state.failures += 1;
+        const threshold = Math.max(1, parseInt(base.connectivityFailureThreshold) || 3);
+        if (state.failures >= threshold) await this._setConnectivity(base, false);
+      }
+    } finally {
+      state.checking = false;
+    }
+  }
+
+  _probeTcp(ip, timeout = CONNECTIVITY_TIMEOUT, port = CONNECTIVITY_PORT) {
+    return new Promise((resolve) => {
+      const socket = net.createConnection({ host: ip, port });
+      this._probeSockets.add(socket);
+      let settled = false;
+      const finish = (reachable) => {
+        if (settled) return;
+        settled = true;
+        this._probeSockets.delete(socket);
+        socket.destroy();
+        resolve(reachable);
+      };
+      socket.setTimeout(timeout);
+      socket.once('connect', () => finish(true));
+      socket.once('timeout', () => finish(false));
+      socket.once('error', () => finish(false));
+      socket.once('close', () => finish(false));
+    });
+  }
+
+  async _setConnectivity(base, connected) {
+    const state = this._connectivityState(base);
+    const changed = state.connected !== connected;
+    state.connected = connected;
+
+    if (state.hap) {
+      const { sensor, Characteristic } = state.hap;
+      sensor.updateCharacteristic(
+        Characteristic.ContactSensorState,
+        connected
+          ? Characteristic.ContactSensorState.CONTACT_DETECTED
+          : Characteristic.ContactSensorState.CONTACT_NOT_DETECTED,
+      );
+    }
+
+    if (state.matterUuid && this.api.isMatterEnabled && this.api.isMatterEnabled()) {
+      try {
+        await this.api.matter.updateAccessoryState(
+          state.matterUuid,
+          'booleanState',
+          { stateValue: connected },
+        );
+      } catch (err) {
+        this.log.debug(`[TempurPedic] Matter connectivity update deferred: ${err.message}`);
+      }
+    }
+
+    if (changed) {
+      this.log[connected ? 'info' : 'warn'](
+        `[TempurPedic] ${base.name} connectivity: ${connected ? 'connected (contact closed)' : 'unavailable (contact open)'}`,
+      );
+    }
+  }
+
+  _stopConnectivityMonitoring() {
+    for (const timer of this._connectivityTimers.values()) clearInterval(timer);
+    this._connectivityTimers.clear();
+    for (const socket of this._probeSockets) socket.destroy();
+    this._probeSockets.clear();
+  }
 
   _sendCommand(ip, commandKey) {
     const payload = COMMANDS[commandKey];

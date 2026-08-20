@@ -20,7 +20,7 @@ Commands are sent directly to the base over UDP — **no Java or external depend
 
 - [Homebridge](https://homebridge.io) v1.3.0 or later
 - Your Tempur-Pedic Smart Base must be on the same local network as Homebridge
-- A static IP assigned to your base (recommended, so the IP doesn't change)
+- A DHCP reservation for your base (recommended, so its IP remains tied to its MAC address)
 
 ---
 
@@ -89,6 +89,16 @@ Use the Homebridge UI to configure the plugin — no manual JSON editing require
 | `name`    | ✅ | — | Name of the bed base shown in HomeKit |
 | `ip`      | ✅ | — | IP address of the Smart Base on your LAN |
 | `delay`   | ❌ | `1000` | ms before each switch auto-resets to Off |
+| `enableConnectivitySensor` | ❌ | `true` | Add a contact sensor that is closed while the base is reachable |
+| `connectivitySensorName` | ❌ | `Bed Connectivity` | Contact sensor name in HomeKit and Matter |
+| `connectivityCheckInterval` | ❌ | `30` | Seconds between connectivity checks |
+| `connectivityFailureThreshold` | ❌ | `3` | Consecutive failed checks before the sensor opens |
+
+### Bed connectivity sensor
+
+Each enabled sensor checks the bed base's TCP port `2000`, which identifies the expected Tempur-Pedic service more reliably than a ping alone. The contact is closed while the service is reachable. It opens after the configured number of consecutive failures and closes on the first successful check.
+
+The default 30-second interval and three-failure threshold avoid brief Wi-Fi interruptions causing false alarms. Reserve the configured IP for the bed's MAC address in your router; runtime MAC checks are unreliable across Docker networks, VLANs, and routed subnets.
 
 ---
 
