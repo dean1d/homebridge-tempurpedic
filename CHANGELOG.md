@@ -2,6 +2,11 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.2.1-beta.2] - 2026-08-29
+
+### Fixed
+- Fix "Both" vibration naming applying the "Vibrate" custom name to the "Vibration" switches too. The custom-name lookup keyed off the shared UDP command instead of the button's own key, so both switches in a pair showed the "Vibrate N" label instead of one "Vibrate N" and one "Vibration N".
+
 ## [5.2.1-beta.1] - 2026-08-20
 
 ### Fixed

@@ -129,7 +129,7 @@ class TempurPedicPlatform {
     return buildButtons(base.vibrationNaming || 'vibrate')
       .filter(button => base[button.enableKey] !== false)
       .map(button => {
-        const nameKey = BUTTON_NAME_CONFIG_KEYS[button.command];
+        const nameKey = BUTTON_NAME_CONFIG_KEYS[button.key];
         const customName = nameKey && typeof base[nameKey] === 'string'
           ? base[nameKey].trim()
           : '';
