@@ -2,21 +2,13 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
-## [5.2.1-beta.2] - 2026-08-29
-
-### Fixed
-- Fix "Both" vibration naming applying the "Vibrate" custom name to the "Vibration" switches too. The custom-name lookup keyed off the shared UDP command instead of the button's own key, so both switches in a pair showed the "Vibrate N" label instead of one "Vibrate N" and one "Vibration N".
-
-## [5.2.1-beta.1] - 2026-08-20
-
-### Fixed
-- Implement `configureMatterAccessory` and use `updatePlatformAccessories` for Matter accessories restored from cache, instead of always calling `registerPlatformAccessories`. Re-registering an already-known Matter accessory on every Homebridge restart could make controllers such as Alexa treat it as newly added and drop existing commissioning.
-- Distinguish a missing/unusable `ping` binary from a genuinely unreachable bed base. Environments without ICMP permissions (e.g. some containers) no longer silently flip the connectivity sensor to unavailable; a diagnostic error is logged once per base instead.
-
-## [5.2.1-beta.0] - 2026-08-19
+## [5.2.1] - 2026-08-31
 
 ### Fixed
 - Use ICMP ping for bed connectivity checks because TCP port 2000 is not consistently available after a base reconnects.
+- Implement `configureMatterAccessory` and use `updatePlatformAccessories` for Matter accessories restored from cache, instead of always calling `registerPlatformAccessories`. Re-registering an already-known Matter accessory on every Homebridge restart could make controllers such as Alexa treat it as newly added and drop existing commissioning.
+- Distinguish a missing/unusable `ping` binary from a genuinely unreachable bed base. Environments without ICMP permissions (e.g. some containers) no longer silently flip the connectivity sensor to unavailable; a diagnostic error is logged once per base instead.
+- Fix "Both" vibration naming applying the "Vibrate" custom name to the "Vibration" switches too. The custom-name lookup keyed off the shared UDP command instead of the button's own key, so both switches in a pair showed the "Vibrate N" label instead of one "Vibrate N" and one "Vibration N".
 
 ## [5.2.0] - 2026-08-19
 
