@@ -18,7 +18,8 @@ Commands are sent directly to the base over UDP — **no Java or external depend
 
 ## Requirements
 
-- [Homebridge](https://homebridge.io) v1.3.0 or later
+- [Homebridge](https://homebridge.io) v1.6.0 or later
+- Supported Node.js versions include 26.x, tested with v26.13.1. Use Homebridge 2.5 or later with Node.js 26.
 - Your Tempur-Pedic Smart Base must be on the same local network as Homebridge
 - A DHCP reservation for your base (recommended, so its IP remains tied to its MAC address)
 

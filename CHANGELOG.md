@@ -2,6 +2,12 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.2.2] - 2026-11-22
+
+### Added
+
+- Declare Node.js 26 support, verified on v26.13.1. Use Homebridge 2.5 or later with Node.js 26.
+
 ## [5.2.1] - 2026-08-31
 
 ### Fixed
