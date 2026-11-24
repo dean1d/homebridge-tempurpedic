@@ -2,6 +2,12 @@
 
 All notable changes to `homebridge-tempurpedic` will be documented in this file.
 
+## [5.2.3] - 2026-11-23
+
+### Fixed
+
+- Fix Matter commands failing after a Homebridge restart (Alexa: "There was a problem"). 5.2.1 stopped re-registering cached Matter accessories, but Homebridge does not restore Matter endpoints or handlers from cache, so they were never live. All Matter accessories are registered again on every startup; their UUIDs and cached state are kept.
+
 ## [5.2.2] - 2026-11-22
 
 ### Added

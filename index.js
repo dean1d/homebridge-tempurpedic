@@ -370,26 +370,13 @@ class TempurPedicPlatform {
     if (allAccessories.length === 0) return;
 
     const expectedUUIDs = new Set(allAccessories.map(a => a.UUID));
-    const newAccessories = allAccessories.filter(a => !this._matterCachedAccessories.has(a.UUID));
-    const existingAccessories = allAccessories.filter(a => this._matterCachedAccessories.has(a.UUID));
-
-    // Register the complete, deterministic set of brand-new endpoints in one call.
-    // Sending one accessory per call can expose a partial bridge topology while
-    // Homebridge is starting, which some controllers treat as removals/additions.
-    if (newAccessories.length > 0) {
-      await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, newAccessories);
-      this.log.info(`[TempurPedic] Registered ${newAccessories.length} new Matter accessories.`);
-    }
-
-    // Accessories already known from a previous run must NOT be re-registered —
-    // registerPlatformAccessories behaves like HAP's, so calling it again for an
-    // existing UUID recreates the endpoint and drops any commissioning/binding a
-    // controller (e.g. Alexa) already holds for it. updatePlatformAccessories
-    // refreshes handlers/state in place without disturbing that identity.
-    if (existingAccessories.length > 0) {
-      await matter.updatePlatformAccessories(existingAccessories);
-      this.log.info(`[TempurPedic] Updated ${existingAccessories.length} existing Matter accessories.`);
-    }
+    // Unlike HAP, Homebridge does not rebuild Matter endpoints from cache: cached
+    // accessories have no handlers and are not live until registered again each
+    // startup (registration restores their cached state and keeps the same UUID).
+    // updatePlatformAccessories only edits the cache of already-registered ones.
+    // Register the complete set in one call so controllers never see a partial bridge.
+    await matter.registerPlatformAccessories(PLUGIN_NAME, PLATFORM_NAME, allAccessories);
+    this.log.info(`[TempurPedic] Registered ${allAccessories.length} Matter accessories.`);
 
     for (const accessory of allAccessories) {
       this._matterCachedAccessories.set(accessory.UUID, accessory);
